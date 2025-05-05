@@ -1,10 +1,10 @@
 {
   "name": "@overlay-one/google-calendar-mcp-server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Google Calendar MCP Server",
   "type": "module",
   "bin": {
-    "google-calendar-mcp": "./build/index.js"
+    "google-calendar-mcp-server": "./build/index.js"
   },
   "scripts": {  
     "typecheck": "tsc --noEmit",
