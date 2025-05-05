@@ -1,5 +1,5 @@
 {
-  "name": "google-calendar-mcp",
+  "name": "overlay-one/google-calendar-mcp-server",
   "version": "1.1.0",
   "description": "Google Calendar MCP Server",
   "type": "module",

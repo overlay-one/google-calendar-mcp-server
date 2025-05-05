@@ -114,6 +114,14 @@ export class AuthServer {
   }
 
   async start(openBrowser = true): Promise<boolean> {
+    // Check if we have environment variables for direct auth
+    if (process.env.ACCESS_TOKEN && process.env.CLIENT_ID && process.env.CLIENT_SECRET) {
+      // Directly validate with environment tokens
+      this.authCompletedSuccessfully = true;
+      return true;
+    }
+
+    // Otherwise use normal flow with saved tokens
     if (await this.tokenManager.validateTokens()) {
       this.authCompletedSuccessfully = true;
       return true;

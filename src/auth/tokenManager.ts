@@ -2,7 +2,15 @@ import { OAuth2Client, Credentials } from 'google-auth-library';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { getSecureTokenPath } from './utils.js';
-import { GaxiosError } from 'gaxios';
+
+// Type guard for Google API errors
+interface GoogleApiError {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
 
 export class TokenManager {
   private oauth2Client: OAuth2Client;
@@ -116,8 +124,12 @@ export class TokenManager {
         this.oauth2Client.setCredentials(newTokens);
         console.error("Token refreshed successfully");
         return true;
-      } catch (refreshError) {
-        if (refreshError instanceof GaxiosError && refreshError.response?.data?.error === 'invalid_grant') {
+      } catch (refreshError: unknown) {
+        // Check if this is a Google API error with invalid_grant
+        const isInvalidGrant = isGoogleApiError(refreshError) && 
+                             refreshError.response?.data?.error === 'invalid_grant';
+                             
+        if (isInvalidGrant) {
             console.error("Error refreshing auth token: Invalid grant. Token likely expired or revoked. Please re-authenticate.");
             // Optionally clear the potentially invalid tokens here
             // await this.clearTokens(); 
@@ -138,16 +150,31 @@ export class TokenManager {
   }
 
   async validateTokens(): Promise<boolean> {
-    if (!this.oauth2Client.credentials || !this.oauth2Client.credentials.access_token) {
-        // Try loading first if no credentials set
-        if (!(await this.loadSavedTokens())) {
-            return false; // No saved tokens to load
-        }
-        // Check again after loading
-        if (!this.oauth2Client.credentials || !this.oauth2Client.credentials.access_token) {
-            return false; // Still no token after loading
-        }
+    // Check if credentials are already set (e.g., from environment variables)
+    if (this.oauth2Client.credentials && this.oauth2Client.credentials.access_token) {
+      return this.refreshTokensIfNeeded();
     }
+    
+    // Check for environment variables first
+    if (process.env.ACCESS_TOKEN) {
+      const tokens: Credentials = {
+        access_token: process.env.ACCESS_TOKEN,
+        refresh_token: process.env.REFRESH_TOKEN,
+      };
+      this.oauth2Client.setCredentials(tokens);
+      return true;
+    }
+
+    // Fall back to loading from file if no environment variables
+    if (!(await this.loadSavedTokens())) {
+      return false; // No saved tokens to load
+    }
+    
+    // Check again after loading
+    if (!this.oauth2Client.credentials || !this.oauth2Client.credentials.access_token) {
+      return false; // Still no token after loading
+    }
+    
     return this.refreshTokensIfNeeded();
   }
 
@@ -179,3 +206,12 @@ export class TokenManager {
     }
   }
 } 
+
+// Helper function to check if an error is a Google API error
+function isGoogleApiError(error: unknown): error is GoogleApiError {
+  return typeof error === 'object' && 
+         error !== null && 
+         'response' in error && 
+         typeof error.response === 'object' && 
+         error.response !== null;
+}

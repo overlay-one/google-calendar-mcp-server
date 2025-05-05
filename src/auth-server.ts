@@ -5,11 +5,24 @@ import { AuthServer } from './auth/server.js';
 async function runAuthServer() {
   let authServer: AuthServer | null = null; // Keep reference for cleanup
   try {
-    // Initialize OAuth client
+    // Check if we have required environment variables for direct auth
+    const hasEnvAuth = process.env.CLIENT_ID && 
+                      process.env.CLIENT_SECRET && 
+                      process.env.REDIRECT_URI && 
+                      process.env.ACCESS_TOKEN;
+
+    if (hasEnvAuth) {
+      // We have all required environment variables, no need to start server
+      process.stderr.write('Authentication credentials provided via environment variables.\n');
+      process.stderr.write('Authentication successful.\n');
+      process.exit(0);
+    }
+    
+    // Otherwise initialize OAuth client and start auth server
     const oauth2Client = await initializeOAuth2Client();
     
     // Create and start the auth server
-    authServer = new AuthServer(oauth2Client);
+    authServer = new AuthServer(oauth2Client); 
     
     // Start with browser opening (true by default)
     const success = await authServer.start(true);
