@@ -8,13 +8,13 @@ import { OAuth2Client } from "google-auth-library";
 import { fileURLToPath } from "url";
 
 // Import modular components
-import { initializeOAuth2Client } from './auth/client.js';
-import { AuthServer } from './auth/server.js';
-import { TokenManager } from './auth/tokenManager.js';
-import { getToolDefinitions } from './handlers/listTools.js';
-import { handleCallTool } from './handlers/callTool.js';
+import { initializeOAuth2Client } from "./auth/client.js";
+import { AuthServer } from "./auth/server.js";
+import { TokenManager } from "./auth/tokenManager.js";
+import { getToolDefinitions } from "./handlers/listTools.js";
+import { handleCallTool } from "./handlers/callTool.js";
 
-// --- Global Variables --- 
+// --- Global Variables ---
 // Create server instance (global for export)
 const server = new Server(
   {
@@ -32,7 +32,7 @@ let oauth2Client: OAuth2Client;
 let tokenManager: TokenManager;
 let authServer: AuthServer;
 
-// --- Main Application Logic --- 
+// --- Main Application Logic ---
 async function main() {
   try {
     // 1. Initialize Authentication
@@ -48,7 +48,7 @@ async function main() {
     }
 
     // 3. Set up MCP Handlers
-    
+
     // List Tools Handler
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Directly return the definitions from the handler module
@@ -59,9 +59,11 @@ async function main() {
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Check if tokens are valid before handling the request
       if (!(await tokenManager.validateTokens())) {
-        throw new Error("Authentication required. Please run 'npm run auth' to authenticate.");
+        throw new Error(
+          "Authentication required. Please run 'npm run auth' to authenticate."
+        );
       }
-      
+
       // Delegate the actual tool execution to the specialized handler
       return handleCallTool(request, oauth2Client);
     });
@@ -73,13 +75,12 @@ async function main() {
     // 5. Set up Graceful Shutdown
     process.on("SIGINT", cleanup);
     process.on("SIGTERM", cleanup);
-
   } catch (error: unknown) {
     process.exit(1);
   }
 }
 
-// --- Cleanup Logic --- 
+// --- Cleanup Logic ---
 async function cleanup() {
   try {
     if (authServer) {
@@ -92,14 +93,12 @@ async function cleanup() {
   }
 }
 
-// --- Exports & Execution Guard --- 
+// --- Exports & Execution Guard ---
 // Export server and main for testing or potential programmatic use
 export { main, server };
 
 // Run main() only when this script is executed directly
-const isDirectRun = import.meta.url.startsWith('file://') && process.argv[1] === fileURLToPath(import.meta.url);
-if (isDirectRun) {
-  main().catch(() => {
-    process.exit(1);
-  });
-}
+
+main().catch(() => {
+  process.exit(1);
+});
